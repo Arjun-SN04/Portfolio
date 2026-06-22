@@ -39,10 +39,14 @@ const nameLines = [
 
 export default function Hero() {
   const { scrollY } = useScroll();
-  const nameSpacing = useTransform(scrollY, [0, 650], ["-0.02em", "0.38em"]);
+  const dynamicSpacing = useTransform(scrollY, [0, 650], ["-0.02em", "0.38em"]);
 
+  const [isMobile, setIsMobile] = useState(false);
   const [contactVisible, setContactVisible] = useState(false);
+
   useEffect(() => {
+    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
+
     const el = document.getElementById("contact");
     if (!el) return;
     const obs = new IntersectionObserver(
@@ -52,6 +56,8 @@ export default function Hero() {
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  const nameSpacing = isMobile ? "-0.02em" : dynamicSpacing;
 
   const handleScrollToWork = () => {
     const el = document.getElementById("work");
