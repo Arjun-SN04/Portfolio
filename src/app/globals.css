@@ -60,7 +60,7 @@ html {
   color: #f2f2f2;
 }
 
-body {
+html, body {
   overflow-x: hidden;
 }
 

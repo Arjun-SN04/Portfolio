@@ -34,6 +34,8 @@ export default function Globe() {
 
   // Scroll tracking ref (ranges from 0 to 1.2)
   const scrollProgressRef = useRef(0);
+  // Lerp-smoothed scroll value — prevents micro-jitter in spread animation
+  const smoothScrollRef = useRef(0);
 
   // Initialize data arcs, stars, and point-drift vectors
   const starsRef = useRef<Star[]>([]);
@@ -116,7 +118,10 @@ export default function Globe() {
 
     // Render loop
     const tick = () => {
-      const s = scrollProgressRef.current;
+      // Lerp toward raw scroll at 60fps — smooths out micro-jitter even on mobile
+      const scrollTarget = scrollProgressRef.current;
+      smoothScrollRef.current += (scrollTarget - smoothScrollRef.current) * 0.06;
+      const s = smoothScrollRef.current;
 
       rafId = requestAnimationFrame(tick);
 
@@ -140,7 +145,8 @@ export default function Globe() {
       ctx.clearRect(0, 0, wLogical, hLogical);
 
       const cx = wLogical / 2;
-      const cy = hLogical / 2;
+      // Shift globe down slightly on mobile so it clears the hero text
+      const cy = hLogical / 2 + (isMobile ? hLogical * 0.08 : 0);
       const R = RRef.current;
 
       // Update rotation angles with inertia
@@ -173,8 +179,8 @@ export default function Globe() {
       // Extend easing to s=1.8 so spread continues past hero fold
       const easedScroll = Math.sin(Math.min(1.8, s) / 1.8 * Math.PI / 2);
 
-      // Vortex swirl: angular spin that increases with scroll progress
-      const swirlAngle = easedScroll * 2.4;
+      // Vortex swirl: reduced to 0.8 rad for fluid outward motion (was 2.4 — too chaotic)
+      const swirlAngle = easedScroll * 0.8;
 
       // Rotates 3D points based on spin matrices (and custom Y vortex rotation)
       const getRotated = (x: number, y: number, z: number, ptIndex: number = 0): Point3D => {
@@ -288,8 +294,9 @@ export default function Globe() {
         const py_globe = cy - r.y * proj;
 
         // 3. Spread freely across screen — no boundary
-        const px = px_globe + (drift.x * 1100) * easedScroll;
-        const py = py_globe + (drift.y * 1100) * easedScroll;
+        const spreadDist = isMobile ? 600 : 1100;
+        const px = px_globe + (drift.x * spreadDist) * easedScroll;
+        const py = py_globe + (drift.y * spreadDist) * easedScroll;
 
         if (r.z < 0) {
           // Backside point

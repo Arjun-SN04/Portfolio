@@ -39,7 +39,6 @@ const nameLines = [
 
 export default function Hero() {
   const { scrollY } = useScroll();
-  const globeY      = useTransform(scrollY, [0, 900], [0, -140]);
   const nameSpacing = useTransform(scrollY, [0, 650], ["-0.02em", "0.38em"]);
 
   const [contactVisible, setContactVisible] = useState(false);
@@ -63,12 +62,9 @@ export default function Hero() {
     <section className="relative h-screen min-h-[660px] flex flex-col bg-background">
 
       {/* ── Globe — centered, fades on scroll ── */}
-      <motion.div
-        className="fixed inset-0 z-5"
-        style={{ y: globeY }}
-      >
+      <div className="fixed inset-0 z-5">
         <Globe />
-      </motion.div>
+      </div>
 
       {/* ── Vignettes ── */}
       <div className="absolute inset-0 pointer-events-none z-[8]"
