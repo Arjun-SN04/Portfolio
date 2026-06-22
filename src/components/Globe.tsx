@@ -36,6 +36,8 @@ export default function Globe() {
   const scrollProgressRef = useRef(0);
   // Lerp-smoothed scroll value — prevents micro-jitter in spread animation
   const smoothScrollRef = useRef(0);
+  // Stable viewport height to prevent scrolling height shifts on mobile devices
+  const viewportHeightRef = useRef(800);
 
   // Initialize data arcs, stars, and point-drift vectors
   const starsRef = useRef<Star[]>([]);
@@ -72,11 +74,22 @@ export default function Globe() {
 
   }, []);
 
+  // Cache viewport height on mount and resize to avoid layouts shifting on scroll
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    viewportHeightRef.current = window.innerHeight || 800;
+    const handleResize = () => {
+      viewportHeightRef.current = window.innerHeight || 800;
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Track window scroll progress passively to avoid React re-renders
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      const viewportHeight = window.innerHeight || 800;
+      const viewportHeight = viewportHeightRef.current || 800;
       // Allow scroll target to reach 2.0 so dispersion spreads fully and fades out completely (early returns at s >= 1.9)
       scrollProgressRef.current = Math.min(2.0, Math.max(0, scrollY / viewportHeight));
     };
@@ -181,8 +194,8 @@ export default function Globe() {
       const swirlAngle = easedScroll * 0.8;
 
       // Rotates 3D points based on spin matrices (and custom Y vortex rotation)
-      const getRotated = (x: number, y: number, z: number, ptIndex: number = 0): Point3D => {
-        const ptSwirl = swirlAngle * (0.8 + (ptIndex % 12) * 0.05);
+      const getRotated = (x: number, y: number, z: number, ptIndex: number = 0, applySwirl: boolean = true): Point3D => {
+        const ptSwirl = applySwirl ? swirlAngle * (0.8 + (ptIndex % 12) * 0.05) : 0;
         const currentRY = ry + ptSwirl;
 
         const cosY = Math.cos(currentRY);
@@ -221,7 +234,7 @@ export default function Globe() {
       // ── Layer 2: Render background stars (z < 0) ──
       starsRef.current.forEach((star) => {
         star.phase += star.speed;
-        const rStar = getRotated(star.x, star.y, star.z);
+        const rStar = getRotated(star.x, star.y, star.z, 0, false);
         if (rStar.z < 0) {
           // Safety check: skip drawing if star is behind/too close to the camera plane
           if (cameraDistance + rStar.z <= 10) return;
@@ -381,7 +394,7 @@ export default function Globe() {
 
       // ── Layer 6: Foreground stars (z > 0) ──
       starsRef.current.forEach((star) => {
-        const rStar = getRotated(star.x, star.y, star.z);
+        const rStar = getRotated(star.x, star.y, star.z, 0, false);
         if (rStar.z >= 0) {
           // Safety check: skip drawing if star is behind/too close to the camera plane
           if (cameraDistance + rStar.z <= 10) return;

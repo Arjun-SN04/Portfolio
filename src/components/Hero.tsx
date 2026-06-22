@@ -65,7 +65,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative h-screen min-h-[660px] flex flex-col bg-background">
+    <section className="relative h-[100svh] md:h-screen min-h-[660px] flex flex-col bg-background">
 
       {/* ── Globe — centered, fades on scroll ── */}
       <div className="fixed inset-0 z-5">
@@ -115,7 +115,7 @@ export default function Hero() {
       </motion.div>
 
       {/* ── NAME BLOCK — vertically centered, large ── */}
-      <div className="relative z-20 flex flex-col justify-start flex-1 px-[4vw] pt-[10vh] select-none">
+      <div className="relative z-20 flex flex-col justify-start flex-1 px-[4vw] pt-[10svh] md:pt-[10vh] select-none">
 
         <motion.span
           initial={{ opacity: 0, x: -16 }}
