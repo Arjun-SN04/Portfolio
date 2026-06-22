@@ -25,7 +25,9 @@ export default function Globe() {
   const isDraggingRef = useRef(false);
   const previousMouseRef = useRef({ x: 0, y: 0 });
   const rotationRef = useRef({ x: 0, y: -0.8 });
-  const velocityRef = useRef({ x: 0, y: 0.003 }); // velocity for auto-rotation/spin
+  const velocityRef = useRef({ x: 0, y: 0.003 });
+  // Pending drag delta accumulated between mousemove events — consumed once per RAF tick
+  const pendingDragRef = useRef({ x: 0, y: 0 });
   const mouseHoverRef = useRef({ x: -9999, y: -9999 });
   const isHoveredRef = useRef(false);
 
@@ -159,25 +161,26 @@ export default function Globe() {
       const cy = hLogical / 2 + (isMobile ? hLogical * 0.08 : 0);
       const R = RRef.current;
 
-      // Update rotation angles with inertia
-      if (!isDraggingRef.current) {
-        velocityRef.current.x *= 0.95;
-        velocityRef.current.y *= 0.95;
-
-        // Auto-rotation velocity
-        if (Math.abs(velocityRef.current.y) < 0.002) {
-          velocityRef.current.y = 0.002;
-        }
-
+      // Consume accumulated drag delta from mousemove events (RAF-synced application)
+      if (isDraggingRef.current && (pendingDragRef.current.x !== 0 || pendingDragRef.current.y !== 0)) {
+        const sensitivity = 0.007;
+        velocityRef.current.y = pendingDragRef.current.x * sensitivity;
+        velocityRef.current.x = pendingDragRef.current.y * sensitivity;
+        rotationRef.current.y += velocityRef.current.y;
+        rotationRef.current.x += velocityRef.current.x;
+        rotationRef.current.x = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, rotationRef.current.x));
+        pendingDragRef.current = { x: 0, y: 0 };
+      } else if (!isDraggingRef.current) {
+        velocityRef.current.x *= 0.92;
+        velocityRef.current.y *= 0.92;
+        if (Math.abs(velocityRef.current.y) < 0.002) velocityRef.current.y = 0.002;
         rotationRef.current.x += velocityRef.current.x;
         rotationRef.current.y += velocityRef.current.y;
-      } else {
-        velocityRef.current.x *= 0.85;
-        velocityRef.current.y *= 0.85;
       }
 
       const timeMs = Date.now();
-      const floatWobble = Math.sin(timeMs * 0.0006) * 0.05;
+      // Suppress float wobble while dragging so it doesn't fight the rotation axis
+      const floatWobble = isDraggingRef.current ? 0 : Math.sin(timeMs * 0.0006) * 0.05;
 
       const rx = rotationRef.current.x + floatWobble;
       const ry = rotationRef.current.y;
@@ -427,6 +430,9 @@ export default function Globe() {
 
     const handleStart = (e: MouseEvent | TouchEvent) => {
       if (scrollProgressRef.current > 0.1) return;
+      // Don't hijack clicks on interactive elements (buttons, links, inputs)
+      const target = e.target as HTMLElement;
+      if (target.closest("a, button, input, textarea, [role='button']")) return;
       isDraggingRef.current = true;
       const pos = getPointerPos(e);
       previousMouseRef.current = pos;
@@ -441,13 +447,9 @@ export default function Globe() {
         const dx = pos.x - previousMouseRef.current.x;
         const dy = pos.y - previousMouseRef.current.y;
 
-        const sensitivity = 0.005;
-        velocityRef.current.y = dx * sensitivity;
-        velocityRef.current.x = -dy * sensitivity;
-
-        rotationRef.current.y += velocityRef.current.y;
-        rotationRef.current.x += velocityRef.current.x;
-        rotationRef.current.x = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, rotationRef.current.x));
+        // Accumulate — tick consumes once per frame (RAF-synced, no jitter)
+        pendingDragRef.current.x += dx;
+        pendingDragRef.current.y += -dy;
 
         previousMouseRef.current = pos;
       }
@@ -467,8 +469,9 @@ export default function Globe() {
       mouseHoverRef.current = { x: -9999, y: -9999 };
     };
 
-    canvas.addEventListener("mousedown", handleStart);
-    canvas.addEventListener("mousemove", handleMove);
+    // Mouse: listen on window so hero content (z-20) doesn't block events to canvas (z-5)
+    window.addEventListener("mousedown", handleStart);
+    window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleEnd);
 
     canvas.addEventListener("touchstart", handleStart, { passive: true });
@@ -486,8 +489,8 @@ export default function Globe() {
         window.removeEventListener("resize", resize);
       }
 
-      canvas.removeEventListener("mousedown", handleStart);
-      canvas.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mousedown", handleStart);
+      window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleEnd);
 
       canvas.removeEventListener("touchstart", handleStart);
@@ -500,7 +503,7 @@ export default function Globe() {
   }, []);
 
   return (
-    <div className="absolute inset-0 select-none pointer-events-none md:pointer-events-auto">
+    <div className="absolute inset-0 select-none pointer-events-auto">
       <canvas
         ref={canvasRef}
         className="w-full h-full cursor-grab active:cursor-grabbing"
