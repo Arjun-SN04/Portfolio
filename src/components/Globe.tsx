@@ -142,7 +142,8 @@ export default function Globe() {
       rafId = requestAnimationFrame(tick);
 
       // Skip render when globe fully gone to save CPU/GPU resources
-      if (s >= 1.9) {
+      // Mobile: gone at s=0.9 so it clears before next section appears
+      if (s >= (isMobile ? 0.9 : 1.9)) {
         canvas.style.opacity = "0";
         return;
       }
@@ -150,8 +151,11 @@ export default function Globe() {
       const wLogical = stableW;
       const hLogical = stableH;
 
-      // Fade starts at s=1.1 (just past hero), fully gone at s=1.9 (well into next section)
-      const canvasOpacity = Math.max(0, 1 - Math.max(0, (s - 1.1) / 0.8));
+      // Mobile: fade s=0.4→0.9 — clears well before next section scrolls into view
+      // Desktop: fade s=1.1→1.9 — lingers as dot spread plays out
+      const canvasOpacity = isMobile
+        ? Math.max(0, 1 - Math.max(0, (s - 0.4) / 0.5))
+        : Math.max(0, 1 - Math.max(0, (s - 1.1) / 0.8));
       canvas.style.opacity = canvasOpacity.toFixed(3);
 
       ctx.clearRect(0, 0, wLogical, hLogical);
@@ -173,7 +177,9 @@ export default function Globe() {
       } else if (!isDraggingRef.current) {
         velocityRef.current.x *= 0.92;
         velocityRef.current.y *= 0.92;
-        if (Math.abs(velocityRef.current.y) < 0.002) velocityRef.current.y = 0.002;
+        // Mobile: 0.008 rad/frame = ~27°/s — visibly rotating without interaction
+        const minVY = isMobile ? 0.008 : 0.002;
+        if (Math.abs(velocityRef.current.y) < minVY) velocityRef.current.y = minVY;
         rotationRef.current.x += velocityRef.current.x;
         rotationRef.current.y += velocityRef.current.y;
       }
@@ -285,8 +291,8 @@ export default function Globe() {
 
       const drifts = pointDriftsRef.current;
 
-      // Subsample dots on mobile to reduce point count from 4.5k to 2.25k for significant speedup
-      const step = isMobile ? 2 : 1;
+      // Subsample dots on mobile: 4.5k → 1.5k points, cuts per-frame work by 67%
+      const step = isMobile ? 3 : 1;
       for (let i = 0; i < mapPoints.length; i += step) {
         const p = mapPoints[i];
         const drift = drifts[i] || { x: 0, y: 0, z: 0 };
@@ -309,7 +315,8 @@ export default function Globe() {
         const py_globe = cy - r.y * proj;
 
         // 3. Spread freely across screen — no boundary
-        const spreadDist = isMobile ? 600 : 1100;
+        // Mobile: 130px keeps the burst effect contained within phone viewport
+        const spreadDist = isMobile ? 130 : 1100;
         const px = px_globe + (drift.x * spreadDist) * easedScroll;
         const py = py_globe + (drift.y * spreadDist) * easedScroll;
 
@@ -449,7 +456,8 @@ export default function Globe() {
 
         // Accumulate — tick consumes once per frame (RAF-synced, no jitter)
         pendingDragRef.current.x += dx;
-        pendingDragRef.current.y += -dy;
+        // On touch, skip vertical delta — vertical swipe should scroll the page, not tilt globe
+        pendingDragRef.current.y += ("touches" in e) ? 0 : -dy;
 
         previousMouseRef.current = pos;
       }
@@ -474,8 +482,9 @@ export default function Globe() {
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleEnd);
 
-    canvas.addEventListener("touchstart", handleStart, { passive: true });
-    canvas.addEventListener("touchmove", handleMove, { passive: true });
+    // Touch: on window so gestures reach the globe even when hero text (z-20) is above the canvas (z-5)
+    window.addEventListener("touchstart", handleStart, { passive: true });
+    window.addEventListener("touchmove", handleMove, { passive: true });
     window.addEventListener("touchend", handleEnd);
 
     canvas.addEventListener("mouseenter", handleMouseEnter);
@@ -493,8 +502,8 @@ export default function Globe() {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleEnd);
 
-      canvas.removeEventListener("touchstart", handleStart);
-      canvas.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchstart", handleStart);
+      window.removeEventListener("touchmove", handleMove);
       window.removeEventListener("touchend", handleEnd);
 
       canvas.removeEventListener("mouseenter", handleMouseEnter);

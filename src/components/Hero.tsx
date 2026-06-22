@@ -31,6 +31,21 @@ function Magnetic({ children }: { children: React.ReactNode }) {
   );
 }
 
+const ROLES = [
+  "MERN Developer",
+  "AI Developer",
+  "Full Stack Engineer",
+  "LLM Builder",
+  "React Developer",
+  "Node.js Engineer",
+  "Next.js Developer",
+  "TypeScript Developer",
+  "REST API Developer",
+  "AI Integration Engineer",
+  "Real-time Systems Dev",
+  "Backend Developer",
+];
+
 const nameLines = [
   { text: "ARJUN", gradient: false },
   { text: "S",     gradient: false },
@@ -44,6 +59,10 @@ export default function Hero() {
   const [isMobile, setIsMobile] = useState(false);
   const [contactVisible, setContactVisible] = useState(false);
 
+  const [roleIdx, setRoleIdx] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [typing, setTyping] = useState(true);
+
   useEffect(() => {
     setIsMobile(window.matchMedia("(pointer: coarse)").matches);
 
@@ -56,6 +75,25 @@ export default function Hero() {
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  useEffect(() => {
+    const current = ROLES[roleIdx];
+    if (typing) {
+      if (displayed.length < current.length) {
+        const t = setTimeout(() => setDisplayed(current.slice(0, displayed.length + 1)), 75);
+        return () => clearTimeout(t);
+      }
+      const t = setTimeout(() => setTyping(false), 2000);
+      return () => clearTimeout(t);
+    } else {
+      if (displayed.length > 0) {
+        const t = setTimeout(() => setDisplayed(d => d.slice(0, -1)), 38);
+        return () => clearTimeout(t);
+      }
+      setRoleIdx(i => (i + 1) % ROLES.length);
+      setTyping(true);
+    }
+  }, [displayed, typing, roleIdx]);
 
   const nameSpacing = isMobile ? "-0.02em" : dynamicSpacing;
 
@@ -168,15 +206,20 @@ export default function Hero() {
         <div className="h-[1px] w-full bg-border-subtle mb-6" />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.15 }}
-            className="font-hanken text-[13px] sm:text-sm leading-relaxed text-text-muted max-w-[360px]"
+            className="flex items-center gap-2"
           >
-            Integrating LLMs (Gemini, Groq) and building production MERN systems  from
-            AI-powered quizzes to Stripe billing and real-time Socket.io platforms.
-          </motion.p>
+            <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-text-muted/50">
+              /
+            </span>
+            <span className="font-mono text-[13px] sm:text-sm text-accent-white tracking-wide">
+              {displayed}
+              <span className="inline-block w-0.5 h-[1em] bg-accent-white align-middle ml-0.5 animate-pulse" />
+            </span>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -191,7 +234,7 @@ export default function Hero() {
               transition={{ duration: 0.18 }}
               className="group flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] bg-accent-white text-black px-7 py-3 rounded-full hover:bg-white/90 transition-colors duration-300"
             >
-              Explore Work
+              Explore Projects
               <ArrowUpRight className="h-3 w-3 group-hover:translate-x-px group-hover:-translate-y-px transition-transform duration-300" />
             </motion.button>
 
