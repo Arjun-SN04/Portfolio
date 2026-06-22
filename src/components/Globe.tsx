@@ -85,18 +85,6 @@ export default function Globe() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Track window scroll progress passively to avoid React re-renders
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const viewportHeight = viewportHeightRef.current || 800;
-      // Allow scroll target to reach 2.0 so dispersion spreads fully and fades out completely (early returns at s >= 1.9)
-      scrollProgressRef.current = Math.min(2.0, Math.max(0, scrollY / viewportHeight));
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -141,10 +129,12 @@ export default function Globe() {
 
     // Render loop
     const tick = () => {
-      // Lerp toward raw scroll at 60fps — smooths out micro-jitter. Faster on mobile for snappy tracking.
-      const scrollTarget = scrollProgressRef.current;
-      const lerpSpeed = isMobile ? 0.15 : 0.08;
-      smoothScrollRef.current += (scrollTarget - smoothScrollRef.current) * lerpSpeed;
+      // Read scrollY directly in RAF — frame-synchronized, no scroll event lag
+      const rawScroll = window.scrollY / (viewportHeightRef.current || 800);
+      scrollProgressRef.current = Math.min(2.0, Math.max(0, rawScroll));
+
+      // Lerp smoothing: 0.06/frame ≈ 0.28s time constant — eliminates micro-jitter
+      smoothScrollRef.current += (scrollProgressRef.current - smoothScrollRef.current) * 0.06;
       const s = smoothScrollRef.current;
 
       rafId = requestAnimationFrame(tick);
@@ -516,6 +506,8 @@ export default function Globe() {
         className="w-full h-full cursor-grab active:cursor-grabbing"
         style={{
           filter: "drop-shadow(0 0 28px rgba(255,255,255,0.07))",
+          transform: "translateZ(0)",
+          willChange: "opacity",
         }}
         aria-hidden
       />
