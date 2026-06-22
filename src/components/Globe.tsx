@@ -105,22 +105,25 @@ export default function Globe() {
     if (!ctx) return;
 
     let rafId: number;
-    let width = 0;
-    let height = 0;
     const cameraDistance = 450;
     const isMobile = window.matchMedia("(pointer: coarse)").matches;
     let frameCount = 0;
 
+    // Stable logical dimensions — set once per resize, never read from canvas mid-tick
+    // This prevents mobile address-bar show/hide from causing positional jumps each frame
+    let stableW = 0;
+    let stableH = 0;
+
     const resize = () => {
-      width = canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-      height = canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      stableW = canvas.offsetWidth;
+      stableH = canvas.offsetHeight;
+      canvas.width = stableW * window.devicePixelRatio;
+      canvas.height = stableH * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-      // Sphere radius scaling: significantly reduced for refined editorial visual hierarchy
-      const logicalWidth = canvas.offsetWidth;
-      if (logicalWidth > 1024) {
+      if (stableW > 1024) {
         RRef.current = 150;
-      } else if (logicalWidth > 768) {
+      } else if (stableW > 768) {
         RRef.current = 125;
       } else {
         RRef.current = 95;
@@ -128,7 +131,13 @@ export default function Globe() {
     };
 
     resize();
-    window.addEventListener("resize", resize);
+    // Mobile: only resize on orientation change — address bar hide/show fires resize
+    // constantly during scroll, causing cy to shift and appear as layout stutter
+    if (isMobile) {
+      window.addEventListener("orientationchange", resize);
+    } else {
+      window.addEventListener("resize", resize);
+    }
 
     // Render loop
     const tick = () => {
@@ -146,8 +155,8 @@ export default function Globe() {
         return;
       }
 
-      const wLogical = canvas.width / window.devicePixelRatio;
-      const hLogical = canvas.height / window.devicePixelRatio;
+      const wLogical = stableW;
+      const hLogical = stableH;
 
       // Fade starts at s=1.1 (just past hero), fully gone at s=1.9 (well into next section)
       const canvasOpacity = Math.max(0, 1 - Math.max(0, (s - 1.1) / 0.8));
@@ -481,7 +490,11 @@ export default function Globe() {
 
     return () => {
       cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", resize);
+      if (isMobile) {
+        window.removeEventListener("orientationchange", resize);
+      } else {
+        window.removeEventListener("resize", resize);
+      }
 
       canvas.removeEventListener("mousedown", handleStart);
       canvas.removeEventListener("mousemove", handleMove);
