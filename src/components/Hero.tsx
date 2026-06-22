@@ -100,7 +100,7 @@ export default function Hero() {
         initial={{ opacity: 0, x: 14 }}
         animate={{ opacity: contactVisible ? 0 : 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="fixed right-6 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-5 pointer-events-none"
+        className="fixed right-6 top-1/2 -translate-y-1/2 z-20 hidden md:flex flex-col items-center gap-5 pointer-events-none"
         style={{ pointerEvents: contactVisible ? "none" : "auto" }}
       >
         <a href="https://github.com/Arjun-SN04" target="_blank" rel="noopener noreferrer"
@@ -153,7 +153,7 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.88, ease: [0.16, 1, 0.3, 1] }}
           className="mt-5 font-hanken text-sm sm:text-[15px] text-text-muted leading-relaxed max-w-[480px]"
         >
-          Full-stack developer specializing in AI integration — crafting LLM-powered
+          Full-stack developer specializing in AI integration crafting LLM-powered
           platforms, real-time systems, and scalable MERN applications.
         </motion.p>
       </div>
@@ -174,7 +174,7 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 1.15 }}
             className="font-hanken text-[13px] sm:text-sm leading-relaxed text-text-muted max-w-[360px]"
           >
-            Integrating LLMs (Gemini, Groq) and building production MERN systems — from
+            Integrating LLMs (Gemini, Groq) and building production MERN systems  from
             AI-powered quizzes to Stripe billing and real-time Socket.io platforms.
           </motion.p>
 

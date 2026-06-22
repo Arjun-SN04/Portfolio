@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
 import { Menu, X, Download } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
@@ -99,7 +111,7 @@ export default function Navbar() {
 
       {/* Mobile Drawer */}
       <div
-        className={`fixed inset-y-0 right-0 z-[60] w-full max-w-xs bg-background border-l border-white/10 p-8 flex flex-col justify-between md:hidden shadow-2xl transition-transform duration-300 ease-out
+        className={`fixed top-0 bottom-0 right-0 z-[60] w-full max-w-xs h-[100dvh] bg-background border-l border-white/10 p-8 flex flex-col justify-between md:hidden shadow-2xl transition-transform duration-300 ease-out overflow-y-auto
           ${isOpen ? "translate-x-0" : "translate-x-full"}
         `}
       >

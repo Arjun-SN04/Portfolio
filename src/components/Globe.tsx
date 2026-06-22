@@ -487,7 +487,7 @@ export default function Globe() {
     <div className="absolute inset-0 select-none pointer-events-none md:pointer-events-auto">
       <canvas
         ref={canvasRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing transition-opacity duration-75"
+        className="w-full h-full cursor-grab active:cursor-grabbing"
         style={{
           filter: "drop-shadow(0 0 28px rgba(255,255,255,0.07))",
         }}

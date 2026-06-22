@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -91,6 +91,11 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const isEven = index % 2 === 0;
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+
   // Full scroll range through viewport — drives all card transforms
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -99,7 +104,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
 
   const rawY = useTransform(scrollYProgress,
     [0, 0.18, 0.82, 1],
-    [60, 0, 0, -20]
+    [isMobile ? 20 : 60, 0, 0, isMobile ? -5 : -20]
   );
   const rawScale = useTransform(scrollYProgress,
     [0, 0.15, 0.82, 1],

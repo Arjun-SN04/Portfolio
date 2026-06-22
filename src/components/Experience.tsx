@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { Calendar, MapPin } from "lucide-react";
 
@@ -113,19 +113,26 @@ const jobs: ExpJob[] = [
 function ExperienceCard({ job }: { job: ExpJob }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+
   const { scrollYProgress } = useScroll({
     target: cardRef,
     offset: ["start end", "center 65%"],
   });
-  const rawX = useTransform(scrollYProgress, [0, 1], [80, 0]);
+  const rawX = useTransform(scrollYProgress, [0, 1], [isMobile ? 0 : 80, 0]);
+  const rawY = useTransform(scrollYProgress, [0, 1], [isMobile ? 30 : 0, 0]);
   const rawOpacity = useTransform(scrollYProgress, [0, 0.6], [0, 1]);
   const cardX = useSpring(rawX, { stiffness: 65, damping: 18 });
+  const cardY = useSpring(rawY, { stiffness: 65, damping: 18 });
   const cardOpacity = useSpring(rawOpacity, { stiffness: 65, damping: 18 });
 
   return (
     <motion.div
       ref={cardRef}
-      style={{ x: cardX, opacity: cardOpacity }}
+      style={{ x: cardX, y: cardY, opacity: cardOpacity }}
       whileHover={{ borderColor: "rgba(255,255,255,0.12)" }}
       className="group relative border border-border-subtle bg-surface-dim p-8 md:p-10 transition-colors duration-300 overflow-hidden"
     >
