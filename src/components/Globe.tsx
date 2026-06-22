@@ -77,7 +77,8 @@ export default function Globe() {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const viewportHeight = window.innerHeight || 800;
-      scrollProgressRef.current = Math.min(1.2, Math.max(0, scrollY / viewportHeight));
+      // Allow scroll target to reach 2.0 so dispersion spreads fully and fades out completely (early returns at s >= 1.9)
+      scrollProgressRef.current = Math.min(2.0, Math.max(0, scrollY / viewportHeight));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -118,22 +119,19 @@ export default function Globe() {
 
     // Render loop
     const tick = () => {
-      // Lerp toward raw scroll at 60fps — smooths out micro-jitter even on mobile
+      // Lerp toward raw scroll at 60fps — smooths out micro-jitter. Faster on mobile for snappy tracking.
       const scrollTarget = scrollProgressRef.current;
-      smoothScrollRef.current += (scrollTarget - smoothScrollRef.current) * 0.06;
+      const lerpSpeed = isMobile ? 0.15 : 0.08;
+      smoothScrollRef.current += (scrollTarget - smoothScrollRef.current) * lerpSpeed;
       const s = smoothScrollRef.current;
 
       rafId = requestAnimationFrame(tick);
 
-      // Skip render when globe fully gone
+      // Skip render when globe fully gone to save CPU/GPU resources
       if (s >= 1.9) {
         canvas.style.opacity = "0";
         return;
       }
-
-      // Mobile: render at ~30fps
-      frameCount++;
-      if (isMobile && frameCount % 2 !== 0) return;
 
       const wLogical = canvas.width / window.devicePixelRatio;
       const hLogical = canvas.height / window.devicePixelRatio;
@@ -272,7 +270,9 @@ export default function Globe() {
 
       const drifts = pointDriftsRef.current;
 
-      for (let i = 0; i < mapPoints.length; i++) {
+      // Subsample dots on mobile to reduce point count from 4.5k to 2.25k for significant speedup
+      const step = isMobile ? 2 : 1;
+      for (let i = 0; i < mapPoints.length; i += step) {
         const p = mapPoints[i];
         const drift = drifts[i] || { x: 0, y: 0, z: 0 };
 
@@ -350,6 +350,8 @@ export default function Globe() {
         "rgba(255, 255, 255, 1.00)",
       ];
 
+      const useSquarePoints = isMobile;
+
       for (let l = 0; l < levels.length; l++) {
         const lvl = levels[l];
         if (lvl.px.length === 0) continue;
@@ -357,7 +359,8 @@ export default function Globe() {
         ctx.fillStyle = opacities[l];
         ctx.beginPath();
 
-        if (l === 0) {
+        // On mobile, draw small squares (rect) instead of circles (arc) as they are visually equivalent but 5-10x faster
+        if (l === 0 || useSquarePoints) {
           const size = lvl.size;
           for (let i = 0; i < lvl.px.length; i++) {
             const px = lvl.px[i];
@@ -481,7 +484,7 @@ export default function Globe() {
   }, []);
 
   return (
-    <div className="absolute inset-0 select-none pointer-events-auto">
+    <div className="absolute inset-0 select-none pointer-events-none md:pointer-events-auto">
       <canvas
         ref={canvasRef}
         className="w-full h-full cursor-grab active:cursor-grabbing transition-opacity duration-75"
