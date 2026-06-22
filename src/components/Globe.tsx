@@ -315,8 +315,9 @@ export default function Globe() {
         const py_globe = cy - r.y * proj;
 
         // 3. Spread freely across screen — no boundary
-        // Mobile: 130px keeps the burst effect contained within phone viewport
-        const spreadDist = isMobile ? 130 : 1100;
+        // Mobile: 500px — dots reach all screen corners (max diagonal ~470px on 375×812)
+        // Safe now that canvas fades before the next section scrolls into view
+        const spreadDist = isMobile ? 500 : 1100;
         const px = px_globe + (drift.x * spreadDist) * easedScroll;
         const py = py_globe + (drift.y * spreadDist) * easedScroll;
 
